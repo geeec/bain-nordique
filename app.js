@@ -422,7 +422,16 @@ function exporterCSV() {
 
 // === Reset ===
 async function resetApplication() {
-    showToast('La réinitialisation complète n\'est pas disponible via l\'API. Contactez l\'administrateur.', 'error');
+    if (!confirm('⚠️ Supprimer TOUTES les données ? Cette action est irréversible.')) return;
+    if (!confirm('Êtes-vous vraiment sûr ?')) return;
+    
+    const result = await apiCall('/api/reset', 'POST');
+    
+    if (result && result.success) {
+        showToast('Application réinitialisée !', 'success');
+        await loadAllData();
+        navigateTo('dashboard');
+    }
 }
 
 // === UI Updates ===
