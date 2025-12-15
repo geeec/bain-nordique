@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#1E4D78">
+    <meta name="description" content="Application de gestion de bain nordique">
+    <title>Bain Nordique</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛁</text></svg>">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header class="header">
+            <h1>🛁 Bain Nordique</h1>
+            <div id="status-badges"></div>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="nav">
+            <button class="nav-btn active" data-page="dashboard">Accueil</button>
+            <button class="nav-btn" data-page="mesure">Mesure</button>
+            <button class="nav-btn" data-page="historique">Historique</button>
+            <button class="nav-btn" data-page="gestion">Gestion</button>
+        </nav>
+
+        <!-- Pages -->
+        <main class="main">
+            <!-- Dashboard -->
+            <section id="page-dashboard" class="page active">
+                <div class="card" id="alerte-gel" style="display: none;">
+                    <div class="alerte-gel-content">
+                        <h2>⚠️ ALERTE GEL</h2>
+                        <p id="alerte-gel-message"></p>
+                        <button class="btn btn-danger" id="btn-valider-gel">J'ai vidangé les canalisations</button>
+                    </div>
+                </div>
+
+                <div class="card" id="mode-hivernage-banner" style="display: none;">
+                    <div class="hivernage-content">
+                        <h3>❄️ Mode Hivernage Actif</h3>
+                        <p>Les rappels sont suspendus. Les alertes gel restent actives.</p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>Dernières mesures</h2>
+                    <div id="dernieres-mesures">
+                        <p class="text-muted">Aucune mesure enregistrée</p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>Dosages recommandés</h2>
+                    <div id="dosages-recommandes">
+                        <p class="text-muted">Effectuez une mesure pour voir les recommandations</p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>Informations</h2>
+                    <div id="infos-bain">
+                        <p><strong>Jours depuis mise en eau :</strong> <span id="jours-mise-eau">-</span></p>
+                        <p><strong>Prochain activateur brome :</strong> <span id="prochain-activateur">-</span></p>
+                        <p><strong>Prochain nettoyage balles :</strong> <span id="prochain-balles">-</span></p>
+                    </div>
+                </div>
+
+                <div class="actions-rapides">
+                    <button class="btn btn-primary btn-large" onclick="navigateTo('mesure')">➕ Nouvelle mesure</button>
+                    <button class="btn btn-secondary btn-large" id="btn-baignade">🏊 Ajouter baignade</button>
+                </div>
+            </section>
+
+            <!-- Page Mesure -->
+            <section id="page-mesure" class="page">
+                <div class="card">
+                    <h2>Nouvelle mesure</h2>
+                    <form id="form-mesure">
+                        <div class="form-group">
+                            <label for="ph">pH</label>
+                            <input type="number" id="ph" name="ph" min="6" max="9" step="0.1" placeholder="7.2">
+                            <small>Idéal : 7.2 - 7.6</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="brome">Brome (mg/L)</label>
+                            <input type="number" id="brome" name="brome" min="0" max="15" step="0.5" placeholder="3">
+                            <small>Idéal : 2 - 4 mg/L</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="temperature">Température (°C)</label>
+                            <input type="number" id="temperature" name="temperature" min="0" max="45" step="1" placeholder="38">
+                        </div>
+
+                        <h3>État de l'eau</h3>
+
+                        <div class="form-group">
+                            <label for="transparence">Transparence</label>
+                            <div class="range-container">
+                                <input type="range" id="transparence" name="transparence" min="1" max="5" value="1">
+                                <div class="range-labels">
+                                    <span>1 - Transparent</span>
+                                    <span>5 - Opaque</span>
+                                </div>
+                            </div>
+                            <div class="range-value">Valeur : <span id="transparence-value">1</span></div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="couleur">Couleur de l'eau</label>
+                            <select id="couleur" name="couleur">
+                                <option value="claire">Claire</option>
+                                <option value="coloree">Légèrement colorée</option>
+                                <option value="verte">Verte</option>
+                                <option value="autre">Autre</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="ecume" name="ecume">
+                                <span>Présence d'écume</span>
+                            </label>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="notes">Notes (optionnel)</label>
+                            <textarea id="notes" name="notes" rows="2" placeholder="Observations..."></textarea>
+                        </div>
+
+                        <div id="dosages-preview" class="dosages-preview" style="display: none;">
+                            <h3>💊 Dosages à appliquer</h3>
+                            <div id="dosages-list"></div>
+                        </div>
+
+                        <h3>Checklist</h3>
+                        <div class="checklist" id="checklist-mesure">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="check_mesure">
+                                <span>Mesurer pH et brome</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="check_produits">
+                                <span>Ajouter produits si nécessaire</span>
+                            </label>
+                            <label class="checkbox-label" id="check-activateur-container" style="display: none;">
+                                <input type="checkbox" name="check_activateur">
+                                <span>Activateur de brome (cycle 2 sem.)</span>
+                            </label>
+                            <label class="checkbox-label" id="check-eclatante-container" style="display: none;">
+                                <input type="checkbox" name="check_eclatante">
+                                <span>Eau éclatante préventive (cycle 2 sem.)</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="check_niveau">
+                                <span>Vérifier le niveau d'eau</span>
+                            </label>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-large">Enregistrer la mesure</button>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Page Historique -->
+            <section id="page-historique" class="page">
+                <div class="card">
+                    <h2>Historique des mesures</h2>
+                    <div id="historique-list">
+                        <p class="text-muted">Aucune mesure enregistrée</p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>Journal des baignades</h2>
+                    <div id="baignades-list">
+                        <p class="text-muted">Aucune baignade enregistrée</p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <button class="btn btn-secondary" id="btn-export">📥 Exporter en CSV</button>
+                </div>
+            </section>
+
+            <!-- Page Gestion -->
+            <section id="page-gestion" class="page">
+                <div class="card">
+                    <h2>🔄 Vidange / Remplissage</h2>
+                    <p>Déclarer une vidange réinitialise les cycles de traitement et déclenche la mise en service.</p>
+                    <button class="btn btn-primary" id="btn-vidange">Déclarer une vidange</button>
+                </div>
+
+                <div class="card">
+                    <h2>❄️ Mode Hivernage</h2>
+                    <p>Suspend les rappels de mesures et traitements. Les alertes gel restent actives.</p>
+                    <button class="btn btn-secondary" id="btn-hivernage">Activer le mode hivernage</button>
+                </div>
+
+                <div class="card">
+                    <h2>🧹 Nettoyage balles filtrantes</h2>
+                    <p>Dernier nettoyage : <span id="dernier-nettoyage-balles">-</span></p>
+                    <button class="btn btn-secondary" id="btn-nettoyer-balles">Marquer comme nettoyé</button>
+                </div>
+
+                <div class="card">
+                    <h2>⚙️ Configuration</h2>
+                    <div class="form-group">
+                        <label for="topic-ntfy">Topic ntfy</label>
+                        <input type="text" id="topic-ntfy" placeholder="bain-nordique-xxxx">
+                        <small>Pour recevoir les notifications</small>
+                    </div>
+                    <button class="btn btn-secondary" id="btn-save-config">Sauvegarder</button>
+                    <button class="btn btn-secondary" id="btn-test-notif">🔔 Tester notification</button>
+                </div>
+
+                <div class="card">
+                    <h2>📊 Statistiques</h2>
+                    <p><strong>Date mise en eau :</strong> <span id="date-mise-eau">-</span></p>
+                    <p><strong>Nombre de mesures :</strong> <span id="nb-mesures">0</span></p>
+                    <p><strong>Nombre de baignades :</strong> <span id="nb-baignades">0</span></p>
+                    <p><strong>Estimation vidange :</strong> <span id="estimation-vidange">-</span></p>
+                </div>
+
+                <div class="card card-danger">
+                    <h2>🗑️ Réinitialisation</h2>
+                    <p>Supprimer toutes les données de l'application.</p>
+                    <button class="btn btn-danger" id="btn-reset">Réinitialiser l'application</button>
+                </div>
+            </section>
+        </main>
+
+        <!-- Modal Baignade -->
+        <div id="modal-baignade" class="modal" style="display: none;">
+            <div class="modal-content">
+                <h2>🏊 Nouvelle baignade</h2>
+                <form id="form-baignade">
+                    <div class="form-group">
+                        <label for="baignade-personnes">Nombre de personnes</label>
+                        <input type="number" id="baignade-personnes" min="1" max="10" value="2">
+                    </div>
+                    <div class="form-group">
+                        <label for="baignade-duree">Durée (minutes)</label>
+                        <input type="number" id="baignade-duree" min="10" max="180" value="30">
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+                        <button type="submit" class="btn btn-primary">Enregistrer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal Mise en service -->
+        <div id="modal-mise-en-service" class="modal" style="display: none;">
+            <div class="modal-content">
+                <h2>🚀 Mise en service</h2>
+                <p>Checklist après remplissage :</p>
+                <div class="checklist" id="checklist-mise-en-service">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="mes_remplir">
+                        <span>Remplir le bain</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="mes_balles">
+                        <span>Nettoyer les balles filtrantes</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="mes_filtration">
+                        <span>Mettre en route la filtration</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="mes_activateur">
+                        <span>Ajouter activateur de brome (22.5g)</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="mes_attendre">
+                        <span>Attendre 1h minimum</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="mes_ph">
+                        <span>Mesurer et ajuster pH</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="mes_brome">
+                        <span>Ajouter les tablettes de brome (3 tablettes)</span>
+                    </label>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-primary" onclick="closeMiseEnService()">Terminé</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

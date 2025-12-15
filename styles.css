@@ -1,0 +1,586 @@
+/* === Variables === */
+:root {
+    --primary: #1E4D78;
+    --primary-light: #2E75B5;
+    --secondary: #6c757d;
+    --success: #28a745;
+    --warning: #ffc107;
+    --danger: #dc3545;
+    --light: #f8f9fa;
+    --dark: #343a40;
+    --white: #ffffff;
+    --gray-100: #f5f5f5;
+    --gray-200: #eeeeee;
+    --gray-300: #dddddd;
+    --gray-500: #999999;
+    --gray-600: #666666;
+    --border-radius: 12px;
+    --shadow: 0 2px 8px rgba(0,0,0,0.1);
+    --shadow-lg: 0 4px 16px rgba(0,0,0,0.15);
+}
+
+/* === Reset & Base === */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+    background-color: var(--gray-100);
+    color: var(--dark);
+    line-height: 1.5;
+    min-height: 100vh;
+}
+
+#app {
+    max-width: 600px;
+    margin: 0 auto;
+    padding-bottom: 20px;
+}
+
+/* === Header === */
+.header {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    color: var(--white);
+    padding: 20px;
+    text-align: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.header h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+#status-badges {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.badge {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.badge-warning {
+    background: var(--warning);
+    color: var(--dark);
+}
+
+.badge-danger {
+    background: var(--danger);
+    color: var(--white);
+}
+
+.badge-info {
+    background: var(--primary-light);
+    color: var(--white);
+}
+
+/* === Navigation === */
+.nav {
+    display: flex;
+    background: var(--white);
+    padding: 8px;
+    gap: 4px;
+    position: sticky;
+    top: 76px;
+    z-index: 99;
+    box-shadow: var(--shadow);
+}
+
+.nav-btn {
+    flex: 1;
+    padding: 10px 8px;
+    border: none;
+    background: transparent;
+    color: var(--gray-600);
+    font-size: 0.85rem;
+    font-weight: 500;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.nav-btn:hover {
+    background: var(--gray-100);
+}
+
+.nav-btn.active {
+    background: var(--primary);
+    color: var(--white);
+}
+
+/* === Main Content === */
+.main {
+    padding: 16px;
+}
+
+.page {
+    display: none;
+}
+
+.page.active {
+    display: block;
+}
+
+/* === Cards === */
+.card {
+    background: var(--white);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow);
+}
+
+.card h2 {
+    font-size: 1.1rem;
+    color: var(--primary);
+    margin-bottom: 12px;
+}
+
+.card h3 {
+    font-size: 1rem;
+    color: var(--dark);
+    margin: 16px 0 12px 0;
+}
+
+.card-danger {
+    border: 2px solid var(--danger);
+}
+
+/* === Alerte Gel === */
+#alerte-gel {
+    background: linear-gradient(135deg, var(--danger) 0%, #c82333 100%);
+    color: var(--white);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+}
+
+#alerte-gel h2 {
+    color: var(--white);
+    font-size: 1.3rem;
+}
+
+.alerte-gel-content {
+    text-align: center;
+}
+
+/* === Hivernage Banner === */
+#mode-hivernage-banner {
+    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+    color: var(--white);
+}
+
+#mode-hivernage-banner h3 {
+    color: var(--white);
+    margin: 0 0 8px 0;
+}
+
+.hivernage-content {
+    text-align: center;
+}
+
+/* === Forms === */
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 6px;
+    color: var(--dark);
+}
+
+.form-group input[type="text"],
+.form-group input[type="number"],
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid var(--gray-300);
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border-color 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.form-group small {
+    display: block;
+    color: var(--gray-500);
+    font-size: 0.8rem;
+    margin-top: 4px;
+}
+
+/* === Range Input === */
+.range-container {
+    padding: 8px 0;
+}
+
+input[type="range"] {
+    width: 100%;
+    height: 8px;
+    border-radius: 4px;
+    background: var(--gray-200);
+    outline: none;
+    -webkit-appearance: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--primary);
+    cursor: pointer;
+}
+
+.range-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: var(--gray-500);
+    margin-top: 4px;
+}
+
+.range-value {
+    text-align: center;
+    font-weight: 500;
+    color: var(--primary);
+    margin-top: 8px;
+}
+
+/* === Checkbox === */
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    background: var(--gray-100);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.checkbox-label:hover {
+    background: var(--gray-200);
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--primary);
+}
+
+/* === Buttons === */
+.btn {
+    display: inline-block;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: var(--white);
+}
+
+.btn-primary:hover {
+    background: var(--primary-light);
+}
+
+.btn-secondary {
+    background: var(--gray-200);
+    color: var(--dark);
+}
+
+.btn-secondary:hover {
+    background: var(--gray-300);
+}
+
+.btn-danger {
+    background: var(--danger);
+    color: var(--white);
+}
+
+.btn-danger:hover {
+    background: #c82333;
+}
+
+.btn-large {
+    width: 100%;
+    padding: 16px;
+    font-size: 1.1rem;
+}
+
+.actions-rapides {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* === Dosages Preview === */
+.dosages-preview {
+    background: var(--gray-100);
+    border-radius: 8px;
+    padding: 16px;
+    margin: 16px 0;
+    border-left: 4px solid var(--primary);
+}
+
+.dosages-preview h3 {
+    margin: 0 0 12px 0;
+}
+
+.dosage-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.dosage-item:last-child {
+    border-bottom: none;
+}
+
+.dosage-item .product {
+    font-weight: 500;
+}
+
+.dosage-item .quantity {
+    color: var(--primary);
+    font-weight: 600;
+}
+
+/* === Mesure Card (Historique) === */
+.mesure-card {
+    background: var(--gray-100);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+}
+
+.mesure-card .date {
+    font-size: 0.85rem;
+    color: var(--gray-500);
+    margin-bottom: 8px;
+}
+
+.mesure-card .values {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.mesure-card .value-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.mesure-card .value-label {
+    font-size: 0.75rem;
+    color: var(--gray-500);
+}
+
+.mesure-card .value-number {
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.value-ok { color: var(--success); }
+.value-warning { color: var(--warning); }
+.value-danger { color: var(--danger); }
+
+.mesure-card .etat-eau {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--gray-600);
+}
+
+.mesure-card .notes {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    font-style: italic;
+    color: var(--gray-600);
+}
+
+.mesure-card .dosages-appliques {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--gray-300);
+}
+
+.mesure-card .dosages-appliques h4 {
+    font-size: 0.85rem;
+    color: var(--primary);
+    margin-bottom: 8px;
+}
+
+/* === Baignade Card === */
+.baignade-card {
+    background: var(--gray-100);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.baignade-card .date {
+    font-size: 0.85rem;
+    color: var(--gray-500);
+}
+
+.baignade-card .details {
+    font-weight: 500;
+}
+
+/* === Dashboard Values === */
+.dashboard-values {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+.dashboard-value {
+    text-align: center;
+    padding: 12px;
+    background: var(--gray-100);
+    border-radius: 8px;
+}
+
+.dashboard-value .label {
+    font-size: 0.75rem;
+    color: var(--gray-500);
+    margin-bottom: 4px;
+}
+
+.dashboard-value .number {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+/* === Modal === */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    padding: 20px;
+}
+
+.modal-content {
+    background: var(--white);
+    border-radius: var(--border-radius);
+    padding: 24px;
+    width: 100%;
+    max-width: 400px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-content h2 {
+    color: var(--primary);
+    margin-bottom: 16px;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.modal-actions .btn {
+    flex: 1;
+}
+
+/* === Utilities === */
+.text-muted {
+    color: var(--gray-500);
+}
+
+.text-center {
+    text-align: center;
+}
+
+.mt-2 { margin-top: 8px; }
+.mt-4 { margin-top: 16px; }
+.mb-2 { margin-bottom: 8px; }
+.mb-4 { margin-bottom: 16px; }
+
+/* === Toast Notification === */
+.toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--dark);
+    color: var(--white);
+    padding: 12px 24px;
+    border-radius: 8px;
+    z-index: 300;
+    animation: slideUp 0.3s ease;
+}
+
+.toast.success {
+    background: var(--success);
+}
+
+.toast.error {
+    background: var(--danger);
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+/* === Responsive === */
+@media (max-width: 400px) {
+    .nav-btn {
+        font-size: 0.75rem;
+        padding: 8px 4px;
+    }
+    
+    .dashboard-values {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
