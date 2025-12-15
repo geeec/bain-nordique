@@ -1,5 +1,6 @@
 // === Configuration ===
 const CONFIG = {
+    API_URL: 'https://bain-nordique-api.geec.workers.dev',
     VOLUME_M3: 1.5,
     PH_IDEAL_MIN: 7.2,
     PH_IDEAL_MAX: 7.6,
@@ -7,7 +8,6 @@ const CONFIG = {
     BROME_IDEAL_MAX: 4,
     CYCLE_ACTIVATEUR_JOURS: 14,
     CYCLE_BALLES_JOURS: 30,
-    // Dosages par m³
     DOSAGES: {
         ph_moins: { parM3: 30, unite: 'g', effet: '-0.4 pH' },
         ph_plus: { parM3: 15, unite: 'g', effet: '+0.2 pH' },
@@ -25,33 +25,61 @@ let state = {
     mesures: [],
     baignades: [],
     config: {
-        dateMiseEnEau: null,
-        modeHivernage: false,
-        dernierNettoyageBalles: null,
-        alerteGelValidee: false,
-        topicNtfy: ''
-    }
+        date_mise_en_eau: null,
+        mode_hivernage: 'false',
+        dernier_nettoyage_balles: null,
+        alerte_gel_validee: 'false',
+        topic_ntfy: ''
+    },
+    meteo: null
 };
 
 // === Initialisation ===
 document.addEventListener('DOMContentLoaded', () => {
-    loadState();
     initNavigation();
     initForms();
     initButtons();
-    updateUI();
+    loadAllData();
 });
 
-// === Storage ===
-function loadState() {
-    const saved = localStorage.getItem('bain-nordique-state');
-    if (saved) {
-        state = JSON.parse(saved);
+// === API Calls ===
+async function apiCall(endpoint, method = 'GET', data = null) {
+    const options = {
+        method,
+        headers: { 'Content-Type': 'application/json' }
+    };
+    if (data) {
+        options.body = JSON.stringify(data);
+    }
+    
+    try {
+        const response = await fetch(`${CONFIG.API_URL}${endpoint}`, options);
+        return await response.json();
+    } catch (error) {
+        console.error('API Error:', error);
+        showToast('Erreur de connexion au serveur', 'error');
+        return null;
     }
 }
 
-function saveState() {
-    localStorage.setItem('bain-nordique-state', JSON.stringify(state));
+async function loadAllData() {
+    showToast('Chargement...', 'info');
+    
+    // Charger en parallèle
+    const [mesures, baignades, config, meteo] = await Promise.all([
+        apiCall('/api/mesures'),
+        apiCall('/api/baignades'),
+        apiCall('/api/config'),
+        apiCall('/api/meteo')
+    ]);
+    
+    if (mesures) state.mesures = mesures;
+    if (baignades) state.baignades = baignades;
+    if (config) state.config = config;
+    if (meteo) state.meteo = meteo;
+    
+    updateUI();
+    showToast('Données chargées !', 'success');
 }
 
 // === Navigation ===
@@ -65,17 +93,14 @@ function initNavigation() {
 }
 
 function navigateTo(page) {
-    // Update nav buttons
     document.querySelectorAll('.nav-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.page === page);
     });
     
-    // Update pages
     document.querySelectorAll('.page').forEach(p => {
         p.classList.toggle('active', p.id === `page-${page}`);
     });
     
-    // Refresh page content
     if (page === 'dashboard') updateDashboard();
     if (page === 'mesure') updateMesurePage();
     if (page === 'historique') updateHistorique();
@@ -84,24 +109,20 @@ function navigateTo(page) {
 
 // === Forms ===
 function initForms() {
-    // Form Mesure
     document.getElementById('form-mesure').addEventListener('submit', (e) => {
         e.preventDefault();
         enregistrerMesure();
     });
     
-    // Form Baignade
     document.getElementById('form-baignade').addEventListener('submit', (e) => {
         e.preventDefault();
         enregistrerBaignade();
     });
     
-    // Transparence slider
     document.getElementById('transparence').addEventListener('input', (e) => {
         document.getElementById('transparence-value').textContent = e.target.value;
     });
     
-    // pH et Brome change -> update dosages preview
     ['ph', 'brome', 'couleur', 'ecume', 'transparence'].forEach(id => {
         document.getElementById(id).addEventListener('change', updateDosagesPreview);
     });
@@ -109,41 +130,26 @@ function initForms() {
 
 // === Buttons ===
 function initButtons() {
-    // Baignade
     document.getElementById('btn-baignade').addEventListener('click', () => {
         document.getElementById('modal-baignade').style.display = 'flex';
     });
     
-    // Vidange
     document.getElementById('btn-vidange').addEventListener('click', declarerVidange);
-    
-    // Hivernage
     document.getElementById('btn-hivernage').addEventListener('click', toggleHivernage);
-    
-    // Nettoyer balles
     document.getElementById('btn-nettoyer-balles').addEventListener('click', marquerBallesNettoyees);
-    
-    // Config
     document.getElementById('btn-save-config').addEventListener('click', sauvegarderConfig);
     document.getElementById('btn-test-notif').addEventListener('click', testerNotification);
-    
-    // Export
     document.getElementById('btn-export').addEventListener('click', exporterCSV);
-    
-    // Reset
     document.getElementById('btn-reset').addEventListener('click', resetApplication);
-    
-    // Valider alerte gel
     document.getElementById('btn-valider-gel').addEventListener('click', validerAlerteGel);
 }
 
 // === Mesures ===
-function enregistrerMesure() {
+async function enregistrerMesure() {
     const form = document.getElementById('form-mesure');
     const formData = new FormData(form);
     
     const mesure = {
-        id: Date.now(),
         date: new Date().toISOString(),
         ph: parseFloat(formData.get('ph')) || null,
         brome: parseFloat(formData.get('brome')) || null,
@@ -168,22 +174,23 @@ function enregistrerMesure() {
         )
     };
     
-    state.mesures.unshift(mesure);
-    saveState();
+    const result = await apiCall('/api/mesures', 'POST', mesure);
     
-    form.reset();
-    document.getElementById('transparence-value').textContent = '1';
-    document.getElementById('dosages-preview').style.display = 'none';
-    
-    showToast('Mesure enregistrée !', 'success');
-    navigateTo('dashboard');
+    if (result && result.success) {
+        form.reset();
+        document.getElementById('transparence-value').textContent = '1';
+        document.getElementById('dosages-preview').style.display = 'none';
+        
+        showToast('Mesure enregistrée !', 'success');
+        await loadAllData();
+        navigateTo('dashboard');
+    }
 }
 
 function calculerDosages(ph, brome, couleur, ecume, transparence) {
     const dosages = [];
     const vol = CONFIG.VOLUME_M3;
     
-    // pH
     if (ph !== null && !isNaN(ph)) {
         if (ph > CONFIG.PH_IDEAL_MAX) {
             const ecart = ph - CONFIG.PH_IDEAL_MAX;
@@ -206,7 +213,6 @@ function calculerDosages(ph, brome, couleur, ecume, transparence) {
         }
     }
     
-    // Brome
     if (brome !== null && !isNaN(brome)) {
         if (brome < CONFIG.BROME_IDEAL_MIN) {
             const quantite = CONFIG.DOSAGES.brome.parM3 * vol;
@@ -218,7 +224,6 @@ function calculerDosages(ph, brome, couleur, ecume, transparence) {
         }
     }
     
-    // Eau verte -> choc
     if (couleur === 'verte') {
         const quantite = CONFIG.DOSAGES.choc.parM3 * vol;
         dosages.push({
@@ -228,7 +233,6 @@ function calculerDosages(ph, brome, couleur, ecume, transparence) {
         });
     }
     
-    // Écume
     if (ecume) {
         const quantite = CONFIG.DOSAGES.anti_ecume.parM3 * vol;
         dosages.push({
@@ -238,7 +242,6 @@ function calculerDosages(ph, brome, couleur, ecume, transparence) {
         });
     }
     
-    // Eau trouble (transparence > 2)
     if (transparence > 2) {
         const quantite = CONFIG.DOSAGES.eau_eclatante_curatif.parM3 * vol;
         dosages.push({
@@ -280,23 +283,23 @@ function updateDosagesPreview() {
 }
 
 // === Baignades ===
-function enregistrerBaignade() {
+async function enregistrerBaignade() {
     const personnes = parseInt(document.getElementById('baignade-personnes').value);
     const duree = parseInt(document.getElementById('baignade-duree').value);
     
     const baignade = {
-        id: Date.now(),
         date: new Date().toISOString(),
         nbPersonnes: personnes,
         dureeMinutes: duree
     };
     
-    state.baignades.unshift(baignade);
-    saveState();
+    const result = await apiCall('/api/baignades', 'POST', baignade);
     
-    closeModal();
-    showToast('Baignade enregistrée !', 'success');
-    updateDashboard();
+    if (result && result.success) {
+        closeModal();
+        showToast('Baignade enregistrée !', 'success');
+        await loadAllData();
+    }
 }
 
 function closeModal() {
@@ -304,82 +307,84 @@ function closeModal() {
 }
 
 // === Gestion du bain ===
-function declarerVidange() {
+async function declarerVidange() {
     if (!confirm('Confirmer la vidange et le remplissage du bain ?')) return;
     
-    state.config.dateMiseEnEau = new Date().toISOString();
-    state.config.dernierNettoyageBalles = new Date().toISOString();
-    state.config.modeHivernage = false;
-    saveState();
+    const result = await apiCall('/api/vidange', 'POST');
     
-    // Afficher modal mise en service
-    document.getElementById('modal-mise-en-service').style.display = 'flex';
-    
-    showToast('Vidange enregistrée !', 'success');
+    if (result && result.success) {
+        document.getElementById('modal-mise-en-service').style.display = 'flex';
+        showToast('Vidange enregistrée !', 'success');
+        await loadAllData();
+    }
 }
 
 function closeMiseEnService() {
     document.getElementById('modal-mise-en-service').style.display = 'none';
-    // Reset checkboxes
     document.querySelectorAll('#checklist-mise-en-service input').forEach(cb => cb.checked = false);
     updateGestion();
     navigateTo('dashboard');
 }
 
-function toggleHivernage() {
-    state.config.modeHivernage = !state.config.modeHivernage;
-    saveState();
-    updateGestion();
-    updateDashboard();
+async function toggleHivernage() {
+    const result = await apiCall('/api/hivernage', 'POST');
     
-    const msg = state.config.modeHivernage 
-        ? 'Mode hivernage activé' 
-        : 'Mode hivernage désactivé';
-    showToast(msg, 'success');
+    if (result && result.success) {
+        state.config.mode_hivernage = result.modeHivernage ? 'true' : 'false';
+        updateGestion();
+        updateDashboard();
+        
+        const msg = result.modeHivernage 
+            ? 'Mode hivernage activé' 
+            : 'Mode hivernage désactivé';
+        showToast(msg, 'success');
+    }
 }
 
-function marquerBallesNettoyees() {
-    state.config.dernierNettoyageBalles = new Date().toISOString();
-    saveState();
-    updateGestion();
-    showToast('Nettoyage des balles enregistré !', 'success');
+async function marquerBallesNettoyees() {
+    const result = await apiCall('/api/balles', 'POST');
+    
+    if (result && result.success) {
+        state.config.dernier_nettoyage_balles = result.date;
+        updateGestion();
+        showToast('Nettoyage des balles enregistré !', 'success');
+    }
 }
 
-function validerAlerteGel() {
-    state.config.alerteGelValidee = true;
-    saveState();
-    updateDashboard();
-    showToast('Alerte validée', 'success');
+async function validerAlerteGel() {
+    const result = await apiCall('/api/alerte-gel/valider', 'POST');
+    
+    if (result && result.success) {
+        state.config.alerte_gel_validee = 'true';
+        updateDashboard();
+        showToast('Alerte validée', 'success');
+    }
 }
 
 // === Configuration ===
-function sauvegarderConfig() {
+async function sauvegarderConfig() {
     const topic = document.getElementById('topic-ntfy').value.trim();
-    state.config.topicNtfy = topic;
-    saveState();
-    showToast('Configuration sauvegardée !', 'success');
+    
+    const result = await apiCall('/api/config', 'POST', { topic_ntfy: topic });
+    
+    if (result && result.success) {
+        state.config.topic_ntfy = topic;
+        showToast('Configuration sauvegardée !', 'success');
+    }
 }
 
 async function testerNotification() {
-    const topic = state.config.topicNtfy;
-    if (!topic) {
+    if (!state.config.topic_ntfy) {
         showToast('Veuillez d\'abord configurer le topic ntfy', 'error');
         return;
     }
     
-    try {
-        const response = await fetch(`https://ntfy.sh/${topic}`, {
-            method: 'POST',
-            body: '🛁 Test notification Bain Nordique !'
-        });
-        
-        if (response.ok) {
-            showToast('Notification envoyée !', 'success');
-        } else {
-            showToast('Erreur lors de l\'envoi', 'error');
-        }
-    } catch (error) {
-        showToast('Erreur : ' + error.message, 'error');
+    const result = await apiCall('/api/notification/test', 'POST');
+    
+    if (result && result.success) {
+        showToast('Notification envoyée !', 'success');
+    } else {
+        showToast('Erreur lors de l\'envoi', 'error');
     }
 }
 
@@ -416,26 +421,8 @@ function exporterCSV() {
 }
 
 // === Reset ===
-function resetApplication() {
-    if (!confirm('⚠️ Supprimer TOUTES les données ? Cette action est irréversible.')) return;
-    if (!confirm('Êtes-vous vraiment sûr ?')) return;
-    
-    localStorage.removeItem('bain-nordique-state');
-    state = {
-        mesures: [],
-        baignades: [],
-        config: {
-            dateMiseEnEau: null,
-            modeHivernage: false,
-            dernierNettoyageBalles: null,
-            alerteGelValidee: false,
-            topicNtfy: ''
-        }
-    };
-    
-    showToast('Application réinitialisée', 'success');
-    updateUI();
-    navigateTo('dashboard');
+async function resetApplication() {
+    showToast('La réinitialisation complète n\'est pas disponible via l\'API. Contactez l\'administrateur.', 'error');
 }
 
 // === UI Updates ===
@@ -477,15 +464,22 @@ function updateDashboard() {
     
     // Dosages recommandés
     const dosagesContainer = document.getElementById('dosages-recommandes');
-    if (derniereMesure && derniereMesure.dosagesRecommandes && derniereMesure.dosagesRecommandes.length > 0) {
-        dosagesContainer.innerHTML = derniereMesure.dosagesRecommandes.map(d => `
-            <div class="dosage-item">
-                <span class="product">${d.produit}</span>
-                <span class="quantity">${d.quantite}</span>
-            </div>
-        `).join('');
-    } else if (derniereMesure) {
-        dosagesContainer.innerHTML = '<p style="color: var(--success);">✅ Aucun traitement nécessaire</p>';
+    if (derniereMesure) {
+        let dosages = derniereMesure.dosages_recommandes || derniereMesure.dosagesRecommandes;
+        if (typeof dosages === 'string') {
+            try { dosages = JSON.parse(dosages); } catch(e) { dosages = []; }
+        }
+        
+        if (dosages && dosages.length > 0) {
+            dosagesContainer.innerHTML = dosages.map(d => `
+                <div class="dosage-item">
+                    <span class="product">${d.produit}</span>
+                    <span class="quantity">${d.quantite}</span>
+                </div>
+            `).join('');
+        } else {
+            dosagesContainer.innerHTML = '<p style="color: var(--success);">✅ Aucun traitement nécessaire</p>';
+        }
     } else {
         dosagesContainer.innerHTML = '<p class="text-muted">Effectuez une mesure pour voir les recommandations</p>';
     }
@@ -495,19 +489,35 @@ function updateDashboard() {
     
     // Mode hivernage banner
     document.getElementById('mode-hivernage-banner').style.display = 
-        state.config.modeHivernage ? 'block' : 'none';
+        state.config.mode_hivernage === 'true' ? 'block' : 'none';
     
-    // Alerte gel (simulé pour l'instant - sera connecté à l'API météo)
-    document.getElementById('alerte-gel').style.display = 'none';
+    // Alerte gel
+    updateAlerteGel();
+}
+
+function updateAlerteGel() {
+    const alerteContainer = document.getElementById('alerte-gel');
+    const alerteMessage = document.getElementById('alerte-gel-message');
+    
+    if (state.meteo && state.meteo.risqueGel && state.config.alerte_gel_validee !== 'true') {
+        const premierJour = state.meteo.premierJourGel;
+        if (premierJour) {
+            const joursAvant = Math.ceil((new Date(premierJour.date) - new Date()) / (1000 * 60 * 60 * 24));
+            alerteMessage.textContent = `Gel prévu dans ${joursAvant} jour(s) ! Température minimale prévue : ${premierJour.tempMin}°C. Vidangez les canalisations !`;
+            alerteContainer.style.display = 'block';
+        } else {
+            alerteContainer.style.display = 'none';
+        }
+    } else {
+        alerteContainer.style.display = 'none';
+    }
 }
 
 function updateInfosBain() {
-    // Jours depuis mise en eau
-    if (state.config.dateMiseEnEau) {
-        const jours = Math.floor((new Date() - new Date(state.config.dateMiseEnEau)) / (1000 * 60 * 60 * 24));
+    if (state.config.date_mise_en_eau) {
+        const jours = Math.floor((new Date() - new Date(state.config.date_mise_en_eau)) / (1000 * 60 * 60 * 24));
         document.getElementById('jours-mise-eau').textContent = `${jours} jours`;
         
-        // Prochain activateur
         const prochainActivateur = CONFIG.CYCLE_ACTIVATEUR_JOURS - (jours % CONFIG.CYCLE_ACTIVATEUR_JOURS);
         document.getElementById('prochain-activateur').textContent = 
             prochainActivateur === CONFIG.CYCLE_ACTIVATEUR_JOURS ? 'Aujourd\'hui !' : `Dans ${prochainActivateur} jours`;
@@ -516,9 +526,8 @@ function updateInfosBain() {
         document.getElementById('prochain-activateur').textContent = '-';
     }
     
-    // Prochain nettoyage balles
-    if (state.config.dernierNettoyageBalles) {
-        const joursBalles = Math.floor((new Date() - new Date(state.config.dernierNettoyageBalles)) / (1000 * 60 * 60 * 24));
+    if (state.config.dernier_nettoyage_balles) {
+        const joursBalles = Math.floor((new Date() - new Date(state.config.dernier_nettoyage_balles)) / (1000 * 60 * 60 * 24));
         const prochainBalles = CONFIG.CYCLE_BALLES_JOURS - joursBalles;
         document.getElementById('prochain-balles').textContent = 
             prochainBalles <= 0 ? 'À faire !' : `Dans ${prochainBalles} jours`;
@@ -528,9 +537,8 @@ function updateInfosBain() {
 }
 
 function updateMesurePage() {
-    // Check if activateur/eclatante should be shown
-    if (state.config.dateMiseEnEau) {
-        const jours = Math.floor((new Date() - new Date(state.config.dateMiseEnEau)) / (1000 * 60 * 60 * 24));
+    if (state.config.date_mise_en_eau) {
+        const jours = Math.floor((new Date() - new Date(state.config.date_mise_en_eau)) / (1000 * 60 * 60 * 24));
         const showCycle = (jours % CONFIG.CYCLE_ACTIVATEUR_JOURS) < 1 || jours < 1;
         
         document.getElementById('check-activateur-container').style.display = showCycle ? 'block' : 'none';
@@ -539,10 +547,15 @@ function updateMesurePage() {
 }
 
 function updateHistorique() {
-    // Mesures
     const mesuresContainer = document.getElementById('historique-list');
     if (state.mesures.length > 0) {
-        mesuresContainer.innerHTML = state.mesures.map(m => `
+        mesuresContainer.innerHTML = state.mesures.map(m => {
+            let dosages = m.dosages_recommandes || m.dosagesRecommandes || [];
+            if (typeof dosages === 'string') {
+                try { dosages = JSON.parse(dosages); } catch(e) { dosages = []; }
+            }
+            
+            return `
             <div class="mesure-card">
                 <div class="date">${formatDate(m.date)}</div>
                 <div class="values">
@@ -563,10 +576,10 @@ function updateHistorique() {
                     Transparence: ${m.transparence}/5 | Couleur: ${m.couleur} ${m.ecume ? '| Écume' : ''}
                 </div>
                 ${m.notes ? `<div class="notes">"${m.notes}"</div>` : ''}
-                ${m.dosagesRecommandes && m.dosagesRecommandes.length > 0 ? `
+                ${dosages && dosages.length > 0 ? `
                     <div class="dosages-appliques">
                         <h4>💊 Dosages recommandés</h4>
-                        ${m.dosagesRecommandes.map(d => `
+                        ${dosages.map(d => `
                             <div class="dosage-item">
                                 <span class="product">${d.produit}</span>
                                 <span class="quantity">${d.quantite}</span>
@@ -575,18 +588,17 @@ function updateHistorique() {
                     </div>
                 ` : ''}
             </div>
-        `).join('');
+        `}).join('');
     } else {
         mesuresContainer.innerHTML = '<p class="text-muted">Aucune mesure enregistrée</p>';
     }
     
-    // Baignades
     const baignadesContainer = document.getElementById('baignades-list');
     if (state.baignades.length > 0) {
         baignadesContainer.innerHTML = state.baignades.map(b => `
             <div class="baignade-card">
                 <div class="date">${formatDate(b.date)}</div>
-                <div class="details">${b.nbPersonnes} pers. - ${b.dureeMinutes} min</div>
+                <div class="details">${b.nb_personnes || b.nbPersonnes} pers. - ${b.duree_minutes || b.dureeMinutes} min</div>
             </div>
         `).join('');
     } else {
@@ -595,35 +607,29 @@ function updateHistorique() {
 }
 
 function updateGestion() {
-    // Topic ntfy
-    document.getElementById('topic-ntfy').value = state.config.topicNtfy || '';
+    document.getElementById('topic-ntfy').value = state.config.topic_ntfy || '';
     
-    // Bouton hivernage
     const btnHivernage = document.getElementById('btn-hivernage');
-    btnHivernage.textContent = state.config.modeHivernage 
+    btnHivernage.textContent = state.config.mode_hivernage === 'true'
         ? 'Désactiver le mode hivernage' 
         : 'Activer le mode hivernage';
     
-    // Dernier nettoyage balles
     document.getElementById('dernier-nettoyage-balles').textContent = 
-        state.config.dernierNettoyageBalles 
-            ? formatDate(state.config.dernierNettoyageBalles)
+        state.config.dernier_nettoyage_balles 
+            ? formatDate(state.config.dernier_nettoyage_balles)
             : 'Jamais';
     
-    // Statistiques
     document.getElementById('date-mise-eau').textContent = 
-        state.config.dateMiseEnEau 
-            ? formatDate(state.config.dateMiseEnEau)
+        state.config.date_mise_en_eau 
+            ? formatDate(state.config.date_mise_en_eau)
             : 'Non définie';
     document.getElementById('nb-mesures').textContent = state.mesures.length;
     document.getElementById('nb-baignades').textContent = state.baignades.length;
     
-    // Estimation vidange (simple : basée sur le nombre de baignades)
-    if (state.config.dateMiseEnEau) {
+    if (state.config.date_mise_en_eau) {
         const totalPersonnesMinutes = state.baignades.reduce((acc, b) => 
-            acc + (b.nbPersonnes * b.dureeMinutes), 0);
-        // Règle simplifiée : vidange recommandée après 2000 personnes-minutes ou 90 jours
-        const joursDepuisMiseEnEau = Math.floor((new Date() - new Date(state.config.dateMiseEnEau)) / (1000 * 60 * 60 * 24));
+            acc + ((b.nb_personnes || b.nbPersonnes) * (b.duree_minutes || b.dureeMinutes)), 0);
+        const joursDepuisMiseEnEau = Math.floor((new Date() - new Date(state.config.date_mise_en_eau)) / (1000 * 60 * 60 * 24));
         
         if (totalPersonnesMinutes > 1500 || joursDepuisMiseEnEau > 75) {
             document.getElementById('estimation-vidange').textContent = 'Bientôt recommandée';
@@ -661,6 +667,9 @@ function getValueClass(value, min, max) {
 }
 
 function showToast(message, type = 'info') {
+    // Supprimer les anciens toasts
+    document.querySelectorAll('.toast').forEach(t => t.remove());
+    
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     toast.textContent = message;
