@@ -686,7 +686,88 @@ function showToast(message, type = 'info') {
     
     setTimeout(() => toast.remove(), 3000);
 }
+// === ANALYSE PHOTO ===
+function ouvrirCamera() {
+    document.getElementById('photo-input').click();
+}
 
+document.addEventListener('DOMContentLoaded', () => {
+    const photoInput = document.getElementById('photo-input');
+    if (photoInput) {
+        photoInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    document.getElementById('photo-img').src = event.target.result;
+                    document.getElementById('photo-preview').style.display = 'block';
+                    document.getElementById('analyse-resultat').style.display = 'none';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+});
+
+function annulerPhoto() {
+    document.getElementById('photo-input').value = '';
+    document.getElementById('photo-preview').style.display = 'none';
+    document.getElementById('analyse-resultat').style.display = 'none';
+}
+
+async function lancerAnalyse() {
+    const img = document.getElementById('photo-img');
+    const resultatDiv = document.getElementById('analyse-resultat');
+    
+    resultatDiv.style.display = 'block';
+    resultatDiv.className = 'loading';
+    resultatDiv.innerHTML = '⏳ Analyse en cours...';
+    
+    try {
+        const result = await apiCall('/api/analyse-photo', 'POST', {
+            image: img.src
+        });
+        
+        resultatDiv.className = '';
+        
+        if (result && result.success && result.analyse) {
+            const analyse = result.analyse;
+            
+            let html = '<h4>📊 Résultat de l\'analyse</h4>';
+            
+            if (analyse.ph !== null && analyse.ph !== undefined) {
+                html += `<p><strong>pH :</strong> ${analyse.ph}</p>`;
+                document.getElementById('ph').value = analyse.ph;
+            }
+            
+            if (analyse.brome !== null && analyse.brome !== undefined) {
+                html += `<p><strong>Brome :</strong> ${analyse.brome} mg/L</p>`;
+                document.getElementById('brome').value = analyse.brome;
+            }
+            
+            if (analyse.confiance) {
+                html += `<p><strong>Confiance :</strong> <span class="confiance-${analyse.confiance}">${analyse.confiance}</span></p>`;
+            }
+            
+            if (analyse.commentaire) {
+                html += `<p><em>${analyse.commentaire}</em></p>`;
+            }
+            
+            html += '<p class="text-muted" style="margin-top:10px;">⚠️ Vérifiez les valeurs avant d\'enregistrer</p>';
+            
+            resultatDiv.innerHTML = html;
+            
+            // Mettre à jour l'aperçu des dosages
+            updateDosagesPreview();
+            
+        } else {
+            resultatDiv.innerHTML = `<p style="color: var(--danger);">❌ Erreur : ${result?.error || 'Analyse impossible'}</p>`;
+        }
+    } catch (error) {
+        resultatDiv.className = '';
+        resultatDiv.innerHTML = `<p style="color: var(--danger);">❌ Erreur : ${error.message}</p>`;
+    }
+}
 // === Service Worker Registration ===
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js')
