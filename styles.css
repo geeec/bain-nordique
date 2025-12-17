@@ -584,3 +584,43 @@ input[type="range"]::-webkit-slider-thumb {
         grid-template-columns: repeat(2, 1fr);
     }
 }
+/* === Photo Analyse === */
+.photo-analyse {
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.photo-analyse #photo-preview {
+    margin-top: 15px;
+}
+
+.photo-analyse #photo-img {
+    max-width: 100%;
+    max-height: 200px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.photo-analyse #photo-preview .btn {
+    margin: 5px;
+}
+
+#analyse-resultat {
+    margin-top: 15px;
+    padding: 15px;
+    background: var(--gray-100);
+    border-radius: 8px;
+    text-align: left;
+}
+
+#analyse-resultat.loading {
+    text-align: center;
+    color: var(--primary);
+}
+
+#analyse-resultat .confiance-haute { color: var(--success); }
+#analyse-resultat .confiance-moyenne { color: var(--warning); }
+#analyse-resultat .confiance-basse { color: var(--danger); }
