@@ -499,11 +499,69 @@ function updateDashboard() {
     // Mode hivernage banner
     document.getElementById('mode-hivernage-banner').style.display = 
         state.config.mode_hivernage === 'true' ? 'block' : 'none';
+
+    // Météo du jour
+    updateMeteoJour();
     
     // Alerte gel
     updateAlerteGel();
 }
-
+function updateMeteoJour() {
+    const container = document.getElementById('meteo-jour');
+    
+    if (state.meteo && state.meteo.jours && state.meteo.jours.length > 0) {
+        const aujourdhui = state.meteo.jours[0];
+        
+        let html = `
+            <div class="meteo-temperatures">
+                <div class="meteo-temp">
+                    <div class="label">Min</div>
+                    <div class="valeur temp-min">${aujourdhui.tempMin}°C</div>
+                </div>
+                <div class="meteo-temp">
+                    <div class="label">Max</div>
+                    <div class="valeur temp-max">${aujourdhui.tempMax}°C</div>
+                </div>
+            </div>
+        `;
+        
+        if (aujourdhui.risqueGel) {
+            html += `<div class="meteo-alerte-gel">⚠️ Risque de gel aujourd'hui !</div>`;
+        }
+        
+        container.innerHTML = html;
+    } else {
+        container.innerHTML = '<p class="text-muted">Données météo indisponibles</p>';
+    }
+}
+function updateMeteoJour() {
+    const container = document.getElementById('meteo-jour');
+    
+    if (state.meteo && state.meteo.jours && state.meteo.jours.length > 0) {
+        const aujourdhui = state.meteo.jours[0];
+        
+        let html = `
+            <div class="meteo-temperatures">
+                <div class="meteo-temp">
+                    <div class="label">Min</div>
+                    <div class="valeur temp-min">${aujourdhui.tempMin}°C</div>
+                </div>
+                <div class="meteo-temp">
+                    <div class="label">Max</div>
+                    <div class="valeur temp-max">${aujourdhui.tempMax}°C</div>
+                </div>
+            </div>
+        `;
+        
+        if (aujourdhui.risqueGel) {
+            html += `<div class="meteo-alerte-gel">⚠️ Risque de gel aujourd'hui !</div>`;
+        }
+        
+        container.innerHTML = html;
+    } else {
+        container.innerHTML = '<p class="text-muted">Données météo indisponibles</p>';
+    }
+}
 function updateAlerteGel() {
     const alerteContainer = document.getElementById('alerte-gel');
     const alerteMessage = document.getElementById('alerte-gel-message');
