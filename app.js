@@ -65,21 +65,54 @@ async function apiCall(endpoint, method = 'GET', data = null) {
 async function loadAllData() {
     showToast('Chargement...', 'info');
     
-    // Charger en parallèle
-    const [mesures, baignades, config, meteo] = await Promise.all([
+    // Charger depuis l'API backend
+    const [mesures, baignades, config] = await Promise.all([
         apiCall('/api/mesures'),
         apiCall('/api/baignades'),
-        apiCall('/api/config'),
-        apiCall('/api/meteo')
+        apiCall('/api/config')
     ]);
     
     if (mesures) state.mesures = mesures;
     if (baignades) state.baignades = baignades;
     if (config) state.config = config;
-    if (meteo) state.meteo = meteo;
+    
+    // Charger météo directement depuis Open-Meteo (côté client)
+    await loadMeteoDirecte();
     
     updateUI();
     showToast('Données chargées !', 'success');
+}
+
+async function loadMeteoDirecte() {
+    const lat = 48.7167;
+    const lon = 6.2667;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_min,temperature_2m_max&timezone=Europe/Paris&forecast_days=7`;
+    
+    try {
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data && data.daily && data.daily.time) {
+            const jours = data.daily.time.map((date, i) => ({
+                date,
+                tempMin: data.daily.temperature_2m_min[i],
+                tempMax: data.daily.temperature_2m_max[i],
+                risqueGel: data.daily.temperature_2m_min[i] <= 0
+            }));
+            
+            const risqueGel = jours.some(j => j.risqueGel);
+            const premierJourGel = jours.find(j => j.risqueGel);
+            
+            state.meteo = {
+                jours,
+                risqueGel,
+                premierJourGel: premierJourGel || null
+            };
+        }
+    } catch (error) {
+        console.error('Erreur météo:', error);
+        state.meteo = null;
+    }
 }
 
 // === Navigation ===
