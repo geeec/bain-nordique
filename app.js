@@ -539,55 +539,42 @@ function updateDashboard() {
     // Alerte gel
     updateAlerteGel();
 }
+
 function updateMeteoJour() {
     const container = document.getElementById('meteo-jour');
     
-    if (state.meteo && state.meteo.jours && state.meteo.jours.length > 0) {
-        const aujourdhui = state.meteo.jours[0];
+    if (state.meteo && state.meteo.jours && state.meteo.jours.length >= 4) {
+        const joursNoms = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
         
-        let html = `
-            <div class="meteo-temperatures">
-                <div class="meteo-temp">
-                    <div class="label">Min</div>
-                    <div class="valeur temp-min">${aujourdhui.tempMin}°C</div>
-                </div>
-                <div class="meteo-temp">
-                    <div class="label">Max</div>
-                    <div class="valeur temp-max">${aujourdhui.tempMax}°C</div>
-                </div>
-            </div>
-        `;
+        let html = '<div class="meteo-jours">';
         
-        if (aujourdhui.risqueGel) {
-            html += `<div class="meteo-alerte-gel">⚠️ Risque de gel aujourd'hui !</div>`;
+        for (let i = 0; i < 4; i++) {
+            const jour = state.meteo.jours[i];
+            const date = new Date(jour.date);
+            const nomJour = i === 0 ? "Aujourd'hui" : joursNoms[date.getDay()];
+            const classeGel = jour.risqueGel ? 'risque-gel' : '';
+            const classeAujourdhui = i === 0 ? 'aujourd-hui' : '';
+            
+            html += `
+                <div class="meteo-jour-item ${classeAujourdhui} ${classeGel}">
+                    <span class="meteo-jour-nom">${nomJour}</span>
+                    <div class="meteo-jour-temps">
+                        <span class="meteo-jour-temp temp-min">↓ ${jour.tempMin}°C</span>
+                        <span class="meteo-jour-temp temp-max">↑ ${jour.tempMax}°C</span>
+                    </div>
+                </div>
+            `;
         }
         
-        container.innerHTML = html;
-    } else {
-        container.innerHTML = '<p class="text-muted">Données météo indisponibles</p>';
-    }
-}
-function updateMeteoJour() {
-    const container = document.getElementById('meteo-jour');
-    
-    if (state.meteo && state.meteo.jours && state.meteo.jours.length > 0) {
-        const aujourdhui = state.meteo.jours[0];
+        html += '</div>';
         
-        let html = `
-            <div class="meteo-temperatures">
-                <div class="meteo-temp">
-                    <div class="label">Min</div>
-                    <div class="valeur temp-min">${aujourdhui.tempMin}°C</div>
-                </div>
-                <div class="meteo-temp">
-                    <div class="label">Max</div>
-                    <div class="valeur temp-max">${aujourdhui.tempMax}°C</div>
-                </div>
-            </div>
-        `;
-        
-        if (aujourdhui.risqueGel) {
-            html += `<div class="meteo-alerte-gel">⚠️ Risque de gel aujourd'hui !</div>`;
+        // Alerte si gel prévu dans les 4 prochains jours
+        const gelPrevu = state.meteo.jours.slice(0, 4).find(j => j.risqueGel);
+        if (gelPrevu) {
+            const dateGel = new Date(gelPrevu.date);
+            const jourGel = dateGel.getDay();
+            const nomJourGel = state.meteo.jours[0].date === gelPrevu.date ? "aujourd'hui" : joursNoms[jourGel];
+            html += `<div class="meteo-alerte-gel">⚠️ Risque de gel ${nomJourGel} (${gelPrevu.tempMin}°C)</div>`;
         }
         
         container.innerHTML = html;
